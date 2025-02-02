@@ -46,7 +46,9 @@ def get_ip_info(ip):
 @app.route('/track_pixel')
 def track():
     """Track user visit and serve a 1x1 transparent pixel"""
-    ip = request.remote_addr
+    # Get real client IP address from X-Forwarded-For header
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
+    
     user_agent = request.user_agent.string
     referrer = request.referrer or "No Referrer"
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
