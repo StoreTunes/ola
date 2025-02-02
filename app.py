@@ -84,5 +84,5 @@ def index():
     return render_template("index.html", tracking_data=tracking_data)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5001)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
