@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        table { width: 80%; margin: auto; border-collapse: collapse; }
+        th, td { padding: 10px; border: 1px solid #ddd; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h2>Email Tracking Dashboard</h2>
+    <table>
+        <tr>
+            <th>Timestamp</th>
+            <th>IP</th>
+            <th>Country</th>
+            <th>Region</th>
+            <th>City</th>
+            <th>User-Agent</th>
+            <th>Referrer</th>
+        </tr>
+        {% for entry in tracking_data %}
+        <tr>
+            <td>{{ entry.timestamp }}</td>
+            <td>{{ entry.ip }}</td>
+            <td>{{ entry.country }}</td>
+            <td>{{ entry.region }}</td>
+            <td>{{ entry.city }}</td>
+            <td>{{ entry.user_agent }}</td>
+            <td>{{ entry.referrer }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
