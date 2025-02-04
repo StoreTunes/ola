@@ -1,32 +1,40 @@
+import os
+import psycopg2
 from flask import Flask, request, send_file, render_template
 import datetime
-import sqlite3
 import requests
-import os
 
 app = Flask(__name__)
 
-DB_FILE = "tracking_data.db"
+# Database connection
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Initialize the database
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+# Initialize PostgreSQL database
 def init_db():
-    """Create the database and table if they don't exist"""
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tracking (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        timestamp TEXT,
-                        ip TEXT,
-                        country TEXT,
-                        region TEXT,
-                        city TEXT,
-                        user_agent TEXT,
-                        referrer TEXT
-                    )''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tracking (
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
+            ip VARCHAR(50),
+            country VARCHAR(100),
+            region VARCHAR(100),
+            city VARCHAR(100),
+            user_agent TEXT,
+            referrer TEXT,
+            email TEXT
+        )
+    ''')
     conn.commit()
+    cursor.close()
     conn.close()
 
 init_db()
+
 
 # Fetch IP Geolocation Data
 def get_ip_info(ip):
@@ -45,34 +53,34 @@ def get_ip_info(ip):
 
 @app.route('/track_pixel')
 def track():
-    """Track user visit and serve a 1x1 transparent pixel"""
-    # Get real client IP address from X-Forwarded-For header
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-    
+    email = request.args.get("email")
+    ip = request.remote_addr
     user_agent = request.user_agent.string
     referrer = request.referrer or "No Referrer"
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.datetime.now()
 
-    # Get geolocation
+    # Get geolocation data
     location = get_ip_info(ip)
     country, region, city = location["country"], location["region"], location["city"]
 
-    # Store tracking data in database
-    conn = sqlite3.connect(DB_FILE)
+    # Store data in PostgreSQL
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO tracking (timestamp, ip, country, region, city, user_agent, referrer) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                   (timestamp, ip, country, region, city, user_agent, referrer))
+    cursor.execute('''
+        INSERT INTO tracking (timestamp, ip, country, region, city, user_agent, referrer, email) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    ''', (timestamp, ip, country, region, city, user_agent, referrer, email))
+    
     conn.commit()
+    cursor.close()
     conn.close()
 
-    # Return the tracking pixel
     return send_file("static/pixel.png", mimetype="image/png")
 
 # Fetch tracking data from the database
 def get_tracking_data():
-    """Retrieve the last 20 tracking entries"""
-    conn = sqlite3.connect(DB_FILE)
+    """Retrieve the last 20 tracking entries from PostgreSQL"""
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT timestamp, ip, country, region, city, user_agent, referrer FROM tracking ORDER BY id DESC LIMIT 20")
     data = cursor.fetchall()
